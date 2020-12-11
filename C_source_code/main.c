@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
+#include <unistd.h>
 
 #define FILE_TRAIN_IMAGE		"train-images-idx3-ubyte"
 #define FILE_TRAIN_LABEL		"train-labels-idx1-ubyte"
@@ -81,14 +82,16 @@ void foo()
 		printf("ERROR!!!\nDataset File Not Find!Please Copy Dataset to the Floder Included the exe\n");
 		free(train_data);
 		free(train_label);
-		system("pause");
+		//system("pause");
+		pause();
 	}
 	if (read_data(test_data, test_label, COUNT_TEST, FILE_TEST_IMAGE, FILE_TEST_LABEL))
 	{
 		printf("ERROR!!!\nDataset File Not Find!Please Copy Dataset to the Floder Included the exe\n");
 		free(test_data);
 		free(test_label);
-		system("pause");
+		//system("pause");
+		pause();
 	}
 
 
@@ -108,7 +111,8 @@ void foo()
 	free(train_label);
 	free(test_data);
 	free(test_label);
-	system("pause");
+	//system("pause");
+	pause();
 }
 
 int main()
