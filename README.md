@@ -10,7 +10,7 @@
 
 ##### 代码来源
 
-本应用中使用的Lenet5源码来自于https://github.com/fan-wenjie/LeNet-5，该项目使用**C语言**完成，没有依赖其他第三方库，在windows和Linux环境下通过简单的编译即可正确运行
+本应用中使用的Lenet5源码来自于https://github.com/fan-wenjie/LeNet-5，该项目使用**C语言**完成，没有依赖其他第三方库，在windows和Linux环境下通过简单的编译和极少的改动即可正确运行
 
 
 
