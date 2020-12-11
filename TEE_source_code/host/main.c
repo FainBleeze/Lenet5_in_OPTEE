@@ -102,7 +102,7 @@ int testing(TEEC_Session* sess, image *test_data, uint8 *test_label,int total_si
         
 	    /* Clear the TEEC_Operation struct */
 	    memset(&op, 0, sizeof(op));
-        op.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_TEMP_INPUT, TEEC_MEMREF_TEMP_OUTPUT,
+        op.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_TEMP_INPUT, TEEC_VALUE_OUTPUT,
                                          TEEC_NONE, TEEC_NONE);
         TEEC_TempMemoryReference tmr;
         tmr.buffer = test_data + i;

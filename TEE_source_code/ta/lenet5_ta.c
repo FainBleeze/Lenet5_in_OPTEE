@@ -76,17 +76,19 @@ void TA_CloseSessionEntryPoint(void __maybe_unused *sess_ctx)
 static TEE_Result ta_init(uint32_t param_types,
 	TEE_Param params[4])
 {
-	uint32_t exp_param_types = TEE_PARAM_TYPES(TEE_PARAM_TYPE_VALUE_INOUT,
+    /*No param allowed*/
+	uint32_t exp_param_types = TEE_PARAM_TYPES(TEE_PARAM_TYPE_NONE,
 						   TEE_PARAM_TYPE_NONE,
 						   TEE_PARAM_TYPE_NONE,
 						   TEE_PARAM_TYPE_NONE);
 
-	DMSG("has been called");
+	DMSG("Lenet5 initializing...");
 
 	if (param_types != exp_param_types)
 		return TEE_ERROR_BAD_PARAMETERS;
 
-	//functions
+	//Use TEE internal API to mallocate memory for lenet5 model
+    lenet = (LeNet5 *)TEE_Malloc(sizeof(LeNet5), TEE_MALLOC_FILL_ZERO);
 
 	return TEE_SUCCESS;
 }
@@ -94,17 +96,18 @@ static TEE_Result ta_init(uint32_t param_types,
 static TEE_Result ta_trainBatch(uint32_t param_types,
 	TEE_Param params[4])
 {
-	uint32_t exp_param_types = TEE_PARAM_TYPES(TEE_PARAM_TYPE_VALUE_INOUT,
-						   TEE_PARAM_TYPE_NONE,
+	uint32_t exp_param_types = TEE_PARAM_TYPES(TEEC_MEMREF_TEMP_INPUT,
+						   TEEC_MEMREF_TEMP_INPUT,
 						   TEE_PARAM_TYPE_NONE,
 						   TEE_PARAM_TYPE_NONE);
 
-	DMSG("has been called");
+	DMSG("TEE model training...");
 
 	if (param_types != exp_param_types)
 		return TEE_ERROR_BAD_PARAMETERS;
 
 	//functions
+    TrainBatch(params[0].memref.buffer, params[1].memref.buffer, params[0].memeref.size / sizeof(image));
 
 	return TEE_SUCCESS;
 }
@@ -112,17 +115,18 @@ static TEE_Result ta_trainBatch(uint32_t param_types,
 static TEE_Result ta_predict(uint32_t param_types,
 	TEE_Param params[4])
 {
-	uint32_t exp_param_types = TEE_PARAM_TYPES(TEE_PARAM_TYPE_VALUE_INOUT,
-						   TEE_PARAM_TYPE_NONE,
+	uint32_t exp_param_types = TEE_PARAM_TYPES(TEEC_MEMREF_TEMP_INPUT,
+						   TEEC_VALUE_OUTPUT,
 						   TEE_PARAM_TYPE_NONE,
 						   TEE_PARAM_TYPE_NONE);
 
-	DMSG("has been called");
+	DMSG("Predicting in TEE...");
 
 	if (param_types != exp_param_types)
 		return TEE_ERROR_BAD_PARAMETERS;
 
 	//functions
+    params[1].value.a = Predict(params[0].memref.buffer);
 
 	return TEE_SUCCESS;
 }

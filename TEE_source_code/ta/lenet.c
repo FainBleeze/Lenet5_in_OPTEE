@@ -14,6 +14,8 @@
 #include <stdlib.h>
 #include <math.h>
 
+Lenet5* lenet;
+
 #define GETLENGTH(array) (sizeof(array)/sizeof(*(array)))
 
 #define GETCOUNT(array)  (sizeof(array)/sizeof(double))

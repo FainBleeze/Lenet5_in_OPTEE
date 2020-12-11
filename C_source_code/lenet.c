@@ -1,4 +1,4 @@
-#include "lenet.h"
+#include <lenet5.h>
 #include <memory.h>
 #include <time.h>
 #include <stdlib.h>
