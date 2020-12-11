@@ -94,16 +94,18 @@ void foo()
 		pause();
 	}
 
+	clock_t start = clock();
 
 	LeNet5 *lenet = (LeNet5 *)malloc(sizeof(LeNet5));
 	if (load(lenet, LENET_FILE))
 		Initial(lenet);
-	clock_t start = clock();
 	int batches[] = { 300 };
 	for (int i = 0; i < sizeof(batches) / sizeof(*batches);++i)
 		training(lenet, train_data, train_label, batches[i],COUNT_TRAIN);
+		
 	int right = testing(lenet, test_data, test_label, COUNT_TEST);
 	printf("%d/%d\n", right, COUNT_TEST);
+
 	printf("Time:%u\n", (unsigned)(clock() - start));
 	//save(lenet, LENET_FILE);
 	free(lenet);

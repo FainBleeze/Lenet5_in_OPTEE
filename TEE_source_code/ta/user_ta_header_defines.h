@@ -21,7 +21,7 @@
  * TA properties: multi-instance TA, no specific attribute
  * TA_FLAG_EXEC_DDR is meaningless but mandated.
  */
-#define TA_FLAGS			TA_FLAG_MULTI_SESSION
+#define TA_FLAGS			TA_FLAG_EXEC_DDR
 
 /* Provisioned stack size */
 #define TA_STACK_SIZE			(2 * 1024)
