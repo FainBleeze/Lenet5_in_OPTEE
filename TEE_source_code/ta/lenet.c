@@ -8,7 +8,7 @@
  * Some of its library functions may not be used in TEE, So it's
  * waiting for getting modified.
  */
-#include "lenet.h"
+#include <lenet5.h>
 //#include <memory.h> not used
 #include <time.h>
 #include <stdlib.h>
@@ -139,7 +139,7 @@ double relugrad(double y)
 	return y > 0;
 }
 
-static void forward(LeNet5 *lenet, Feature *features, double(*action)(double))
+static void forward(Feature *features, double(*action)(double))
 {
 	CONVOLUTION_FORWARD(features->input, features->layer1, lenet->weight0_1, lenet->bias0_1, action);
 	SUBSAMP_MAX_FORWARD(features->layer1, features->layer2);
@@ -149,7 +149,7 @@ static void forward(LeNet5 *lenet, Feature *features, double(*action)(double))
 	DOT_PRODUCT_FORWARD(features->layer5, features->output, lenet->weight5_6, lenet->bias5_6, action);
 }
 
-static void backward(LeNet5 *lenet, LeNet5 *deltas, Feature *errors, Feature *features, double(*actiongrad)(double))
+static void backward(LeNet5 *deltas, Feature *errors, Feature *features, double(*actiongrad)(double))
 {
 	DOT_PRODUCT_BACKWARD(features->layer5, errors->layer5, errors->output, lenet->weight5_6, deltas->weight5_6, deltas->bias5_6, actiongrad);
 	CONVOLUTION_BACKWARD(features->layer4, errors->layer4, errors->layer5, lenet->weight4_5, deltas->weight4_5, deltas->bias4_5, actiongrad);
@@ -240,7 +240,7 @@ static double f64rand()
 }
 
 
-void TrainBatch(LeNet5 *lenet, image *inputs, uint8 *labels, int batchSize)
+void TrainBatch(image *inputs, uint8 *labels, int batchSize)
 {
 	double buffer[GETCOUNT(LeNet5)] = { 0 };
 	int i = 0;
@@ -251,9 +251,9 @@ void TrainBatch(LeNet5 *lenet, image *inputs, uint8 *labels, int batchSize)
 		Feature errors = { 0 };
 		LeNet5	deltas = { 0 };
 		load_input(&features, inputs[i]);
-		forward(lenet, &features, relu);
+		forward(&features, relu);
 		load_target(&features, &errors, labels[i]);
-		backward(lenet, &deltas, &errors, &features, relugrad);
+		backward(&deltas, &errors, &features, relugrad);
 		#pragma omp critical
 		{
 			FOREACH(j, GETCOUNT(LeNet5))
@@ -265,33 +265,10 @@ void TrainBatch(LeNet5 *lenet, image *inputs, uint8 *labels, int batchSize)
 		((double *)lenet)[i] += k * buffer[i];
 }
 
-void Train(LeNet5 *lenet, image input, uint8 label)
-{
-	Feature features = { 0 };
-	Feature errors = { 0 };
-	LeNet5 deltas = { 0 };
-	load_input(&features, input);
-	forward(lenet, &features, relu);
-	load_target(&features, &errors, label);
-	backward(lenet, &deltas, &errors, &features, relugrad);
-	FOREACH(i, GETCOUNT(LeNet5))
-		((double *)lenet)[i] += ALPHA * ((double *)&deltas)[i];
-}
-
-uint8 Predict(LeNet5 *lenet, image input,uint8 count)
+uint8 Predict(image input)
 {
 	Feature features = { 0 };
 	load_input(&features, input);
-	forward(lenet, &features, relu);
-	return get_result(&features, count);
-}
-
-void Initial(LeNet5 *lenet)
-{
-	for (double *pos = (double *)lenet->weight0_1; pos < (double *)lenet->bias0_1; *pos++ = f64rand());
-	for (double *pos = (double *)lenet->weight0_1; pos < (double *)lenet->weight2_3; *pos++ *= sqrt(6.0 / (LENGTH_KERNEL * LENGTH_KERNEL * (INPUT + LAYER1))));
-	for (double *pos = (double *)lenet->weight2_3; pos < (double *)lenet->weight4_5; *pos++ *= sqrt(6.0 / (LENGTH_KERNEL * LENGTH_KERNEL * (LAYER2 + LAYER3))));
-	for (double *pos = (double *)lenet->weight4_5; pos < (double *)lenet->weight5_6; *pos++ *= sqrt(6.0 / (LENGTH_KERNEL * LENGTH_KERNEL * (LAYER4 + LAYER5))));
-	for (double *pos = (double *)lenet->weight5_6; pos < (double *)lenet->bias0_1; *pos++ *= sqrt(6.0 / (LAYER5 + OUTPUT)));
-	for (int *pos = (int *)lenet->bias0_1; pos < (int *)(lenet + 1); *pos++ = 0);
+	forward(&features, relu);
+	return get_result(&features, 10);
 }
