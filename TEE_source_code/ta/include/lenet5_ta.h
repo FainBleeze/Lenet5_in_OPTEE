@@ -7,10 +7,6 @@
 #ifndef TA_LENET5_H
 #define TA_LENET5_H
 
-/**
- * Include lenet.h
- * /
-
 /*
  * This UUID is generated with uuidgen
  * the ITU-T UUID generator at http://www.itu.int/ITU-T/asn1/uuid.html

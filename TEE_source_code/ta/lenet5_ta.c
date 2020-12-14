@@ -6,12 +6,11 @@
  */
 #include <tee_internal_api.h>
 #include <tee_internal_api_extensions.h>
-
 #include <lenet5_ta.h>
 #include <lenet5.h>
+
 /*
- * Called when the instance of the TA is created. This is the first call in
- * the TA.
+ * Called when the instance of the TA is created. This is the first call in the TA.
  */
 TEE_Result TA_CreateEntryPoint(void)
 {
@@ -88,6 +87,8 @@ static TEE_Result ta_init(uint32_t param_types,
 	if (param_types != exp_param_types)
 		return TEE_ERROR_BAD_PARAMETERS;
 
+	(void)&params; /* Unused parameter */
+
 	//Use TEE internal API to mallocate memory for lenet5 model
     lenet = (LeNet5 *)TEE_Malloc(sizeof(LeNet5), TEE_MALLOC_FILL_ZERO);
 
@@ -97,26 +98,28 @@ static TEE_Result ta_init(uint32_t param_types,
 static TEE_Result ta_trainBatch(uint32_t param_types,
 	TEE_Param params[4])
 {
-	uint32_t exp_param_types = TEE_PARAM_TYPES(TEEC_MEMREF_TEMP_INPUT,
-						   TEEC_MEMREF_TEMP_INPUT,
+	image* imageBuf;
+	uint8* labelBuf;
+	int num;
+	uint32_t exp_param_types = TEE_PARAM_TYPES(TEE_PARAM_TYPE_MEMREF_INPUT,
+						   TEE_PARAM_TYPE_MEMREF_INPUT,
 						   TEE_PARAM_TYPE_NONE,
 						   TEE_PARAM_TYPE_NONE);
-
 	DMSG("TEE model training...");
 
 	if (param_types != exp_param_types)
 		return TEE_ERROR_BAD_PARAMETERS;
 
 	/* Read the parameters*/
-	void* imageBuf = params[0].memref.buffer;
-	void* labelBuf = params[1].memref.buffer;
-	int num = params[0].memeref.size / sizeof(image);
+	imageBuf = (image *)params[0].memref.buffer;
+	labelBuf = (uint8 *)params[1].memref.buffer;
+	num = params[0].memref.size / sizeof(image);
 
 	/** API documentation mentioned that CA's memory should be read only once,
 	 * but this model won't read the same memory twice or more.
 	 * And my CA won't change any memory during the training.
 	 * So I will skip this for now.
-		/** Check if the TA is the only owner of the memory. 
+		 * Check if the TA is the only owner of the memory. 
 		 * If not, we should make a copy to avoid CA's possibly changing memory.
 		 * 
 		if (TEE_SUCCESS != TEE_CheckMemoryAccessRights(TEE_MEMORY_ACCESS_READ, params[0].memref.buffer, params[0].memref.size)){
@@ -130,7 +133,7 @@ static TEE_Result ta_trainBatch(uint32_t param_types,
 	*/
 
 	//Train
-    TrainBatch((image *)imageBuf, (uint8 *)labelBuf, num);
+    TrainBatch(imageBuf, labelBuf, num);
 
 	return TEE_SUCCESS;
 }
@@ -138,8 +141,8 @@ static TEE_Result ta_trainBatch(uint32_t param_types,
 static TEE_Result ta_predict(uint32_t param_types,
 	TEE_Param params[4])
 {
-	uint32_t exp_param_types = TEE_PARAM_TYPES(TEEC_MEMREF_TEMP_INPUT,
-						   TEEC_VALUE_OUTPUT,
+	uint32_t exp_param_types = TEE_PARAM_TYPES(TEE_PARAM_TYPE_MEMREF_INPUT,
+						   TEE_PARAM_TYPE_VALUE_OUTPUT,
 						   TEE_PARAM_TYPE_NONE,
 						   TEE_PARAM_TYPE_NONE);
 
@@ -149,7 +152,7 @@ static TEE_Result ta_predict(uint32_t param_types,
 		return TEE_ERROR_BAD_PARAMETERS;
 
 	// Predct.
-    params[1].value.a = Predict(&((image *)params[0].memref.buffer));
+    params[1].value.a = Predict(*(image *)params[0].memref.buffer);
 
 	return TEE_SUCCESS;
 }

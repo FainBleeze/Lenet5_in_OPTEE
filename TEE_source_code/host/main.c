@@ -25,6 +25,8 @@
 #define COUNT_TRAIN		60000
 #define COUNT_TEST		10000
 
+typedef unsigned char uint8;
+typedef uint8 image[28][28];
 
 int read_data(unsigned char(*data)[28][28], unsigned char label[], const int count, const char data_file[], const char label_file[])
 {
@@ -53,6 +55,7 @@ void training(TEEC_Session* sess, image *train_data, uint8 *train_label, int bat
     {
         TEEC_Operation op;
         uint32_t err_origin;
+		TEEC_Result res;
         /*
 	     * Prepare the argument. 
          * Pass temperary shared memory in the first and second parameter,
@@ -74,7 +77,7 @@ void training(TEEC_Session* sess, image *train_data, uint8 *train_label, int bat
 
         //TrainBatch(lenet, train_data + i, train_label + i, batch_size);
         printf("Invoking TA to train lenet5 model with a batch.\n");
-        res = TEEC_InvokeCommand(&sess, TA_LENET5_CMD_TRAIN_BATCH, &op,
+        res = TEEC_InvokeCommand(sess, TA_LENET5_CMD_TRAIN_BATCH, &op,
                                  &err_origin);
         if (res != TEEC_SUCCESS)
             errx(1, "TEEC_InvokeCommand failed with code 0x%x origin 0x%x",
@@ -92,6 +95,7 @@ int testing(TEEC_Session* sess, image *test_data, uint8 *test_label,int total_si
 	{
         TEEC_Operation op;
         uint32_t err_origin;
+		TEEC_Result res;
         /*
 	     * Prepare the argument. 
          * Pass temperary shared memory in the first parameter(INPUT-only)
@@ -110,12 +114,12 @@ int testing(TEEC_Session* sess, image *test_data, uint8 *test_label,int total_si
         op.params[0].tmpref = tmr;
 		//int p = Predict(lenet, test_data[i], 10);
         printf("Invoking TA to make a prediction.\n");
-        res = TEEC_InvokeCommand(&sess, TA_LENET5_CMD_PREDICT, &op,
+        res = TEEC_InvokeCommand(sess, TA_LENET5_CMD_PREDICT, &op,
                                  &err_origin);
         if (res != TEEC_SUCCESS)
             errx(1, "TEEC_InvokeCommand failed with code 0x%x origin 0x%x",
                  res, err_origin);
-        uint32_t p = op.param[1].value.a;
+        uint32_t p = op.params[1].value.a;
         printf("Got a prediction number: %d\n", p);
 		uint32_t l = test_label[i];
 		right += l == p;
@@ -180,6 +184,7 @@ void foo(TEEC_Session* sess)
 	//LeNet5 *lenet = (LeNet5 *)malloc(sizeof(LeNet5));
     TEEC_Operation op;
     uint32_t err_origin;
+	TEEC_Result res;
     
 	/* Clear the TEEC_Operation struct */
 	memset(&op, 0, sizeof(op));
@@ -188,7 +193,7 @@ void foo(TEEC_Session* sess)
     op.paramTypes = TEEC_PARAM_TYPES(TEEC_NONE, TEEC_NONE,
 					 TEEC_NONE, TEEC_NONE);
     printf("Invoking TA to initialize a lenet5 model.\n");
-	res = TEEC_InvokeCommand(&sess, TA_LENET5_CMD_INITIALIZE, &op,
+	res = TEEC_InvokeCommand(sess, TA_LENET5_CMD_INITIALIZE, &op,
 				 &err_origin);
 	if (res != TEEC_SUCCESS)
 		errx(1, "TEEC_InvokeCommand failed with code 0x%x origin 0x%x",
@@ -202,14 +207,13 @@ void foo(TEEC_Session* sess)
      */
 	int batches[] = { 300 };
 	for (int i = 0; i < sizeof(batches) / sizeof(*batches);++i)
-		training(lenet, train_data, train_label, batches[i],COUNT_TRAIN);
+		training(sess, train_data, train_label, batches[i],COUNT_TRAIN);
 
-	int right = testing(lenet, test_data, test_label, COUNT_TEST);
+	int right = testing(sess, test_data, test_label, COUNT_TEST);
 	printf("%d/%d\n", right, COUNT_TEST);
 	printf("Time:%u\n", (unsigned)(clock() - start));
 	//save(lenet, LENET_FILE);
 
-	free(lenet);
 	free(train_data);
 	free(train_label);
 	free(test_data);
@@ -222,7 +226,7 @@ int main()
 {
     TEEC_Result res;
 	TEEC_Context ctx;
-	TEEC_UUID uuid = TA_HELLO_WORLD_UUID;
+	TEEC_UUID uuid = TA_LENET5_UUID;
 
 	TEEC_Session sess;
 	uint32_t err_origin;

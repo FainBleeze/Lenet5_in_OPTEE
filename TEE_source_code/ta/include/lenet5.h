@@ -79,6 +79,6 @@ typedef struct Feature
 
 void TrainBatch(image *inputs, uint8 *labels, int batchSize);
 
-uint8 Predict(image* input);
+uint8 Predict(image input);
 
 extern LeNet5 *lenet;
