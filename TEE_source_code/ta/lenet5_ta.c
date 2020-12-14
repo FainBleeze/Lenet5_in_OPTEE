@@ -70,7 +70,8 @@ TEE_Result TA_OpenSessionEntryPoint(uint32_t param_types,
 void TA_CloseSessionEntryPoint(void __maybe_unused *sess_ctx)
 {
 	(void)&sess_ctx; /* Unused parameter */
-	IMSG("Goodbye!\n");
+	TEE_Free(lenet);/* Free the memory here.(In fact, it shall be automatically freed.)*/
+	IMSG("Model freed, Goodbye!\n");
 }
 
 static TEE_Result ta_init(uint32_t param_types,
@@ -106,8 +107,30 @@ static TEE_Result ta_trainBatch(uint32_t param_types,
 	if (param_types != exp_param_types)
 		return TEE_ERROR_BAD_PARAMETERS;
 
-	//functions
-    TrainBatch(params[0].memref.buffer, params[1].memref.buffer, params[0].memeref.size / sizeof(image));
+	/* Read the parameters*/
+	void* imageBuf = params[0].memref.buffer;
+	void* labelBuf = params[1].memref.buffer;
+	int num = params[0].memeref.size / sizeof(image);
+
+	/** API documentation mentioned that CA's memory should be read only once,
+	 * but this model won't read the same memory twice or more.
+	 * And my CA won't change any memory during the training.
+	 * So I will skip this for now.
+		/** Check if the TA is the only owner of the memory. 
+		 * If not, we should make a copy to avoid CA's possibly changing memory.
+		 * 
+		if (TEE_SUCCESS != TEE_CheckMemoryAccessRights(TEE_MEMORY_ACCESS_READ, params[0].memref.buffer, params[0].memref.size)){
+			imageBuf = TEE_Malloc(params[0].memref.size, TEE_MALLOC_FILL_ZERO);
+			TEE_MemMove(imageBuf, params[0].memref.buffer, params[0].memref.size);
+		}
+		if (TEE_SUCCESS != TEE_CheckMemoryAccessRights(TEE_MEMORY_ACCESS_READ, params[1].memref.buffer, params[1].memref.size)){
+			imageBuf = TEE_Malloc(params[1].memref.size, TEE_MALLOC_FILL_ZERO);
+			TEE_MemMove(imageBuf, params[1].memref.buffer, params[1].memref.size);
+		}
+	*/
+
+	//Train
+    TrainBatch((image *)imageBuf, (uint8 *)labelBuf, num);
 
 	return TEE_SUCCESS;
 }
@@ -125,8 +148,8 @@ static TEE_Result ta_predict(uint32_t param_types,
 	if (param_types != exp_param_types)
 		return TEE_ERROR_BAD_PARAMETERS;
 
-	//functions
-    params[1].value.a = Predict(params[0].memref.buffer);
+	// Predct.
+    params[1].value.a = Predict(&((image *)params[0].memref.buffer));
 
 	return TEE_SUCCESS;
 }
