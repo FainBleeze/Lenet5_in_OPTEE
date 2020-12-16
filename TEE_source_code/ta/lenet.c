@@ -12,7 +12,7 @@
 //#include <memory.h> not used
 #include <time.h>
 #include <stdlib.h>
-#include <math.h>
+//#include <math.h>
 
 Lenet5* lenet;
 
@@ -129,6 +129,23 @@ Lenet5* lenet;
 			wd[x][y] += ((double *)input)[x] * ((double *)outerror)[y];			\
 }
 
+/*牛顿迭代法计算sqrt
+double my_sqrt(double dNum)
+{
+	double dVal, dLastVal;
+	if (dNum <= 1e-12) {
+		return 0;
+	}
+
+	dVal = 1.0;
+	do {
+		dLastVal = dVal;
+		dVal = (dLastVal + dNum / dLastVal) / 2.0;
+	} while (dVal != dLastVal);
+
+	return dVal;
+}*/
+
 double relu(double x)
 {
 	return x*(x > 0);
@@ -171,7 +188,8 @@ static inline void load_input(Feature *features, image input)
 		std += input[j][k] * input[j][k];
 	}
 	mean /= sz;
-	std = sqrt(std / sz - mean*mean);
+	//std = sqrt(std / sz - mean*mean);
+	std = __ieee754_sqrt(std / sz - mean*mean);
 	FOREACH(j, sizeof(image) / sizeof(*input))
 		FOREACH(k, sizeof(*input) / sizeof(**input))
 	{
@@ -187,7 +205,7 @@ static inline void softmax(double input[OUTPUT], double loss[OUTPUT], int label,
 		double res = 0;
 		for (int j = 0; j < count; ++j)
 		{
-			res += exp(input[j] - input[i]);
+			res += __ieee754_exp(input[j] - input[i]);
 		}
 		loss[i] = 1. / res;
 		inner -= loss[i] * loss[i];
