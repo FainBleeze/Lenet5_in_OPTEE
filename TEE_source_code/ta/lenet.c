@@ -12,7 +12,7 @@
 //#include <memory.h> not used
 #include <time.h>
 #include <stdlib.h>
-//#include <math.h>
+//#include <math.h> not used anymore
 
 Lenet5* lenet;
 
