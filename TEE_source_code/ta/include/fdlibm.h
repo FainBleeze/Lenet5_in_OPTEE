@@ -24,7 +24,9 @@
  */
 
 /*ARM默认使用小端存储*/
+#ifndef __LITTLE_ENDIAN
 #define __LITTLE_ENDIAN
+#endif
 
 #ifdef __LITTLE_ENDIAN
 #define __HI(x) *(1+(int*)&x)
@@ -39,7 +41,10 @@
 #endif
 
 /*使用标准库函数的声明方式*/
+#ifndef __STDC__
 #define __STDC__
+#endif
+
 #ifdef __STDC__
 #define	__P(p)	p
 #else
