@@ -244,19 +244,20 @@ static uint8 get_result(Feature *features, uint8 count)
 	return result;
 }
 
-
-static double f64rand()
+/* Use TEE_internal_core_API TEE_GenarateRandom*/
+static unsigned rand()
 {
-	static int randbit = 0;
+	unsigned res;
+	TEE_GenarateRandom(&res, sizeof(unsigned));
+	return res;
+}
+
+static double f64rand(void)
+{
+	static int randbit = 8 * sizeof(unsigned);
 	unsigned long long lvalue = 0x4000000000000000L;
 	int i = 52 - randbit;
-
-	if (!randbit)
-	{
-		srand((unsigned)time(0));
-		for (int k = RAND_MAX; k; k >>= 1, ++randbit);
-	}
-	for (; i > 0; i -= randbit)
+	for ( ; i > 0; i -= randbit)
 		lvalue |= (unsigned long long)rand() << i;
 	lvalue |= (unsigned long long)rand() >> -i;
 	return *(double *)&lvalue - 3;
@@ -297,7 +298,7 @@ uint8 Predict(image input)
 	return get_result(&features, 10);
 }
 
-void Initial()
+void Initial(void)
 {
 	for (double *pos = (double *)lenet->weight0_1; pos < (double *)lenet->bias0_1; *pos++ = f64rand());
 	for (double *pos = (double *)lenet->weight0_1; pos < (double *)lenet->weight2_3; *pos++ *= __ieee754_sqrt(6.0 / (LENGTH_KERNEL * LENGTH_KERNEL * (INPUT + LAYER1))));
