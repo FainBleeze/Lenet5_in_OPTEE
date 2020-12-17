@@ -9,6 +9,7 @@
  * waiting for getting modified.
  */
 #include <lenet5.h>
+#include <tee_internal_api.h>
 //#include <memory.h> not used
 #include <time.h>
 #include <stdlib.h>
@@ -245,10 +246,10 @@ static uint8 get_result(Feature *features, uint8 count)
 }
 
 /* Use TEE_internal_core_API TEE_GenarateRandom*/
-static unsigned rand()
+static unsigned rand(void)
 {
 	unsigned res;
-	TEE_GenarateRandom(&res, sizeof(unsigned));
+	TEE_GenerateRandom(&res, sizeof(unsigned));
 	return res;
 }
 
