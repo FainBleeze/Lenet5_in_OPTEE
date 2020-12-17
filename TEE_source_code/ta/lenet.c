@@ -13,14 +13,17 @@
 #include <time.h>
 #include <stdlib.h>
 //#include <math.h> not used anymore
+#include <fdlibm.h>
 
-Lenet5* lenet;
+LeNet5* lenet;
+
+typedef size_t uint;
 
 #define GETLENGTH(array) (sizeof(array)/sizeof(*(array)))
 
 #define GETCOUNT(array)  (sizeof(array)/sizeof(double))
 
-#define FOREACH(i,count) for (int i = 0; i < count; ++i)
+#define FOREACH(i,count) for (uint i = 0; i < (uint) count; ++i)
 
 #define CONVOLUTE_VALID(input,output,weight)											\
 {																						\
@@ -42,8 +45,8 @@ Lenet5* lenet;
 
 #define CONVOLUTION_FORWARD(input,output,weight,bias,action)					\
 {																				\
-	for (int x = 0; x < GETLENGTH(weight); ++x)									\
-		for (int y = 0; y < GETLENGTH(*weight); ++y)							\
+	for (uint x = 0; x < GETLENGTH(weight); ++x)									\
+		for (uint y = 0; y < GETLENGTH(*weight); ++y)							\
 			CONVOLUTE_VALID(input[x], output[y], weight[x][y]);					\
 	FOREACH(j, GETLENGTH(output))												\
 		FOREACH(i, GETCOUNT(output[j]))											\
@@ -52,16 +55,16 @@ Lenet5* lenet;
 
 #define CONVOLUTION_BACKWARD(input,inerror,outerror,weight,wd,bd,actiongrad)\
 {																			\
-	for (int x = 0; x < GETLENGTH(weight); ++x)								\
-		for (int y = 0; y < GETLENGTH(*weight); ++y)						\
+	for (uint x = 0; x < GETLENGTH(weight); ++x)								\
+		for (uint y = 0; y < GETLENGTH(*weight); ++y)						\
 			CONVOLUTE_FULL(outerror[y], inerror[x], weight[x][y]);			\
 	FOREACH(i, GETCOUNT(inerror))											\
 		((double *)inerror)[i] *= actiongrad(((double *)input)[i]);			\
 	FOREACH(j, GETLENGTH(outerror))											\
 		FOREACH(i, GETCOUNT(outerror[j]))									\
 		bd[j] += ((double *)outerror[j])[i];								\
-	for (int x = 0; x < GETLENGTH(weight); ++x)								\
-		for (int y = 0; y < GETLENGTH(*weight); ++y)						\
+	for (uint x = 0; x < GETLENGTH(weight); ++x)								\
+		for (uint y = 0; y < GETLENGTH(*weight); ++y)						\
 			CONVOLUTE_VALID(input[x], wd[x][y], outerror[y]);				\
 }
 
@@ -108,8 +111,8 @@ Lenet5* lenet;
 
 #define DOT_PRODUCT_FORWARD(input,output,weight,bias,action)				\
 {																			\
-	for (int x = 0; x < GETLENGTH(weight); ++x)								\
-		for (int y = 0; y < GETLENGTH(*weight); ++y)						\
+	for (uint x = 0; x < GETLENGTH(weight); ++x)								\
+		for (uint y = 0; y < GETLENGTH(*weight); ++y)						\
 			((double *)output)[y] += ((double *)input)[x] * weight[x][y];	\
 	FOREACH(j, GETLENGTH(bias))												\
 		((double *)output)[j] = action(((double *)output)[j] + bias[j]);	\
@@ -117,15 +120,15 @@ Lenet5* lenet;
 
 #define DOT_PRODUCT_BACKWARD(input,inerror,outerror,weight,wd,bd,actiongrad)	\
 {																				\
-	for (int x = 0; x < GETLENGTH(weight); ++x)									\
-		for (int y = 0; y < GETLENGTH(*weight); ++y)							\
+	for (uint x = 0; x < GETLENGTH(weight); ++x)									\
+		for (uint y = 0; y < GETLENGTH(*weight); ++y)							\
 			((double *)inerror)[x] += ((double *)outerror)[y] * weight[x][y];	\
 	FOREACH(i, GETCOUNT(inerror))												\
 		((double *)inerror)[i] *= actiongrad(((double *)input)[i]);				\
 	FOREACH(j, GETLENGTH(outerror))												\
 		bd[j] += ((double *)outerror)[j];										\
-	for (int x = 0; x < GETLENGTH(weight); ++x)									\
-		for (int y = 0; y < GETLENGTH(*weight); ++y)							\
+	for (uint x = 0; x < GETLENGTH(weight); ++x)									\
+		for (uint y = 0; y < GETLENGTH(*weight); ++y)							\
 			wd[x][y] += ((double *)input)[x] * ((double *)outerror)[y];			\
 }
 
@@ -146,12 +149,12 @@ double my_sqrt(double dNum)
 	return dVal;
 }*/
 
-double relu(double x)
+static double relu(double x)
 {
 	return x*(x > 0);
 }
 
-double relugrad(double y)
+static double relugrad(double y)
 {
 	return y > 0;
 }
@@ -227,7 +230,7 @@ static void load_target(Feature *features, Feature *errors, int label)
 static uint8 get_result(Feature *features, uint8 count)
 {
 	double *output = (double *)features->output; 
-	const int outlen = GETCOUNT(features->output);
+	//const int outlen = GETCOUNT(features->output);
 	uint8 result = 0;
 	double maxvalue = *output;
 	for (uint8 i = 1; i < count; ++i)
@@ -241,28 +244,32 @@ static uint8 get_result(Feature *features, uint8 count)
 	return result;
 }
 
+/* Not used.
 static double f64rand()
 {
 	static int randbit = 0;
+	unsigned long long lvalue = 0x4000000000000000L;
+	int i = 52 - randbit;
+
 	if (!randbit)
 	{
 		srand((unsigned)time(0));
-		for (int i = RAND_MAX; i; i >>= 1, ++randbit);
+		for (int k = RAND_MAX; k; k >>= 1, ++randbit);
 	}
-	unsigned long long lvalue = 0x4000000000000000L;
-	int i = 52 - randbit;
 	for (; i > 0; i -= randbit)
 		lvalue |= (unsigned long long)rand() << i;
 	lvalue |= (unsigned long long)rand() >> -i;
 	return *(double *)&lvalue - 3;
 }
+*/
 
 
 void TrainBatch(image *inputs, uint8 *labels, int batchSize)
 {
 	double buffer[GETCOUNT(LeNet5)] = { 0 };
 	int i = 0;
-#pragma omp parallel for
+	double k = ALPHA / batchSize;
+//#pragma omp parallel for
 	for (i = 0; i < batchSize; ++i)
 	{
 		Feature features = { 0 };
@@ -272,15 +279,14 @@ void TrainBatch(image *inputs, uint8 *labels, int batchSize)
 		forward(&features, relu);
 		load_target(&features, &errors, labels[i]);
 		backward(&deltas, &errors, &features, relugrad);
-		#pragma omp critical
+		//#pragma omp critical
 		{
 			FOREACH(j, GETCOUNT(LeNet5))
 				buffer[j] += ((double *)&deltas)[j];
 		}
 	}
-	double k = ALPHA / batchSize;
-	FOREACH(i, GETCOUNT(LeNet5))
-		((double *)lenet)[i] += k * buffer[i];
+	FOREACH(ii, GETCOUNT(LeNet5))
+		((double *)lenet)[ii] += k * buffer[ii];
 }
 
 uint8 Predict(image input)
