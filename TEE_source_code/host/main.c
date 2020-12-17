@@ -15,12 +15,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include <unistd.h>
 
+/** Manually input.
 #define FILE_TRAIN_IMAGE		"train-images-idx3-ubyte"
 #define FILE_TRAIN_LABEL		"train-labels-idx1-ubyte"
 #define FILE_TEST_IMAGE		"t10k-images-idx3-ubyte"
 #define FILE_TEST_LABEL		"t10k-labels-idx1-ubyte"
+*/
 #define LENET_FILE 		"model.dat"
 #define COUNT_TRAIN		60000
 #define COUNT_TEST		10000
@@ -159,21 +160,34 @@ void foo(TEEC_Session* sess)
 	uint8 *train_label = (uint8 *)calloc(COUNT_TRAIN, sizeof(uint8));
 	image *test_data = (image *)calloc(COUNT_TEST, sizeof(image));
 	uint8 *test_label = (uint8 *)calloc(COUNT_TEST, sizeof(uint8));
+
+	char FILE_TRAIN_IMAGE[128], FILE_TRAIN_LABEL[128];
+	char FILE_TEST_IMAGE[128], FILE_TEST_LABEL[128];
+	printf("Please input your train image data path:\n");
+	scanf("%s", FILE_TRAIN_IMAGE);
+	printf("Please input your train label path:\n");
+	scanf("%s", FILE_TRAIN_LABEL);
+	printf("Please input your test image data path:\n");
+	scanf("%s", FILE_TEST_IMAGE);
+	printf("Please input your test label path:\n");
+	scanf("%s", FILE_TEST_LABEL);
+
 	if (read_data(train_data, train_label, COUNT_TRAIN, FILE_TRAIN_IMAGE, FILE_TRAIN_LABEL))
 	{
 		printf("ERROR!!!\nDataset File Not Find!Please Copy Dataset to the Floder Included the exe\n");
 		free(train_data);
 		free(train_label);
 		//system("pause");
-		pause();
+		//pause();
 	}
+
 	if (read_data(test_data, test_label, COUNT_TEST, FILE_TEST_IMAGE, FILE_TEST_LABEL))
 	{
 		printf("ERROR!!!\nDataset File Not Find!Please Copy Dataset to the Floder Included the exe\n");
 		free(test_data);
 		free(test_label);
 		//system("pause");
-		pause();
+		//pause();
 	}
 
 	clock_t start = clock();
@@ -219,7 +233,7 @@ void foo(TEEC_Session* sess)
 	free(test_data);
 	free(test_label);
 	//system("pause");
-	pause();
+	//pause();
 }
 
 int main()

@@ -45,10 +45,12 @@
 #define __STDC__
 #endif
 
+#ifndef __P
 #ifdef __STDC__
 #define	__P(p)	p
 #else
 #define	__P(p)	()
+#endif
 #endif
 
 #define	MAXFLOAT	((float)3.40282346638528860e+38)

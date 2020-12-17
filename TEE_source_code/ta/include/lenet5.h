@@ -81,4 +81,6 @@ void TrainBatch(image *inputs, uint8 *labels, int batchSize);
 
 uint8 Predict(image input);
 
+void Initial();
+
 extern LeNet5 *lenet;

@@ -91,6 +91,7 @@ static TEE_Result ta_init(uint32_t param_types,
 
 	//Use TEE internal API to mallocate memory for lenet5 model
     lenet = (LeNet5 *)TEE_Malloc(sizeof(LeNet5), TEE_MALLOC_FILL_ZERO);
+	Initial();
 
 	return TEE_SUCCESS;
 }

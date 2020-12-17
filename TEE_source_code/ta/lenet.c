@@ -244,7 +244,7 @@ static uint8 get_result(Feature *features, uint8 count)
 	return result;
 }
 
-/* Not used.
+
 static double f64rand()
 {
 	static int randbit = 0;
@@ -261,7 +261,7 @@ static double f64rand()
 	lvalue |= (unsigned long long)rand() >> -i;
 	return *(double *)&lvalue - 3;
 }
-*/
+
 
 
 void TrainBatch(image *inputs, uint8 *labels, int batchSize)
@@ -296,3 +296,14 @@ uint8 Predict(image input)
 	forward(&features, relu);
 	return get_result(&features, 10);
 }
+
+void Initial()
+{
+	for (double *pos = (double *)lenet->weight0_1; pos < (double *)lenet->bias0_1; *pos++ = f64rand());
+	for (double *pos = (double *)lenet->weight0_1; pos < (double *)lenet->weight2_3; *pos++ *= __ieee754_sqrt(6.0 / (LENGTH_KERNEL * LENGTH_KERNEL * (INPUT + LAYER1))));
+	for (double *pos = (double *)lenet->weight2_3; pos < (double *)lenet->weight4_5; *pos++ *= __ieee754_sqrt(6.0 / (LENGTH_KERNEL * LENGTH_KERNEL * (LAYER2 + LAYER3))));
+	for (double *pos = (double *)lenet->weight4_5; pos < (double *)lenet->weight5_6; *pos++ *= __ieee754_sqrt(6.0 / (LENGTH_KERNEL * LENGTH_KERNEL * (LAYER4 + LAYER5))));
+	for (double *pos = (double *)lenet->weight5_6; pos < (double *)lenet->bias0_1; *pos++ *= __ieee754_sqrt(6.0 / (LAYER5 + OUTPUT)));
+	for (int *pos = (int *)lenet->bias0_1; pos < (int *)(lenet + 1); *pos++ = 0);
+}
+
