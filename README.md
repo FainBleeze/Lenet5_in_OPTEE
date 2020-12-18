@@ -12,7 +12,7 @@
 
 本应用中使用的Lenet5源码来自于https://github.com/fan-wenjie/LeNet-5
 
-该项目使用**C语言**完成，没有依赖其他第三方库，在windows和Linux环境下通过简单的编译和极少的改动即可正确运行
+该项目使用**C语言**完成，没有依赖第三方库，在windows和Linux环境下通过简单的编译和极少的改动即可正确运行
 
 
 
@@ -113,3 +113,74 @@ lenet5的源码需要使用exp、sqrt两个浮点运算函数，不可避免地�
 | 平均预测准确率 | 96.99 %  | 97.15 %  |
 |   平均总耗时   | 81.971 s | 82.072 s |
 
+
+
+##### rand() 函数
+
+在lenet5模型中需要使用随机数来为模型赋初始值，编译过程中发现 srand()、rand() 等函数在TEE中都是未实现的函数（虽然这些函数属于libc而非libm）。查阅GPD_TEE_Internal_Core_API_Specification后得知，TEE内部将随机数的生成封装在了TEE_GenerateRandom API中，这个API可以在指定起始地址和长度的缓冲区上生成随机的数据。因此修改源文件，使用此API代替原来的rand()，生成32位的随机数：
+
+~~~c
+/* Use TEE_internal_core_API TEE_GenarateRandom*/
+static unsigned rand(void)
+{
+	unsigned res;
+	TEE_GenerateRandom(&res, sizeof(unsigned));
+	return res;
+}
+~~~
+
+
+
+##### TA崩溃问题
+
+解决了库函数的问题之后，整个TA已经可以正常地编译运行，但在运行过程中遇到了一些问题：
+
+首先是在模型初始化的时候程序崩溃：
+
+> REE: Invoking TA to initialize a lenet5 model.
+>
+> REE: TEEC_InvokeCommand failed with code 0xFFFF3402 origin 0x03.
+
+通过在TEE中打印更多信息发现，调用TEE_Malloc函数为lenet5模型分配内存时，返回的地址是0：
+
+> TEE: Lenet5 TA is created!
+>
+> TEE: ta_init:85: Lenet5 initializing...
+>
+> TEE: ta_init:95: Memory allocated at 0x0
+
+这导致后续更改模型参数的时候产生了非法的访问，发生段错误。
+
+查阅OP-TEE官方QA和其他资料后意识到可能是需要的内存超出了TA的数据段大小。
+
+lenet5.h中定义的LeNet5模型占据了 405*1024 = 415216Bytes 的内存空间。而我们先前在user_ta_header_defines.h中定义了如下的堆栈大小：
+
+~~~c
+/* Provisioned heap size for TEE_Malloc() and friends */
+#define TA_DATA_SIZE			(32 * 1024)
+
+/* Provisioned stack size */
+#define TA_STACK_SIZE			(2 * 1024)
+~~~
+
+32KB的数据段不足以分配LeNet5所需的内存，因此返回0指针，导致程序崩溃。因此我们修改如下：
+
+~~~c
+/* Provisioned heap size for TEE_Malloc() and friends */
+#define TA_DATA_SIZE			(512 * 1024)
+~~~
+
+程序即可正常运行。
+
+后续进行到模型训练步骤时出现了同样的崩溃问题，根据前面的经验阅读代码发现，训练模型时，TrainBatch 函数中定义了一些 LeNet5 和 Feature 类型的临时变量。C语言中的临时变量将会分配在程序的栈空间中，而我们定义的栈空间仅有 2KB，因此导致栈溢出，程序崩溃。
+
+计算得知，函数调用过程中使用的临时变量最多占用 2 * sizeof(LeNet5) + 2 * sizeof(Feature) = 952*1024 = 974976 Bytes，在此基础上留有一些富余，我们将栈空间大小改为 1 MB：
+
+~~~c
+/* Provisioned stack size */
+#define TA_STACK_SIZE			(1024 * 1024)
+~~~
+
+再次编译后重新运行，程序开始正常工作：
+
+![image-20201218155631773](image/image-20201218155631773.png)
