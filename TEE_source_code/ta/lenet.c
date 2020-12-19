@@ -11,8 +11,8 @@
 #include <lenet5.h>
 #include <tee_internal_api.h>
 //#include <memory.h> not used
-#include <time.h>
-#include <stdlib.h>
+//#include <time.h>
+//#include <stdlib.h>
 //#include <math.h> not used anymore
 #include <fdlibm.h>
 

@@ -183,4 +183,87 @@ lenet5.h中定义的LeNet5模型占据了 405*1024 = 415216Bytes 的内存空间
 
 再次编译后重新运行，程序开始正常工作：
 
-![image-20201218155631773](image/image-20201218155631773.png)
+![image-20201218160045807](image/image-20201218160045807.png)
+
+
+
+
+
+### 5.其他事项
+
+##### Qemu中的编译
+
+除了添加TEE_source_code到optee_examples中，还需要对qemu-optee工程中的两个Makefile文件做出修改，使训练和测试用的数据能够被加载到qemu中：
+
+- 将训练-测试数据放到optee_examples/lenet5/data/目录下
+
+- 在optee_examples/Makefile中添加如下内容：
+
+  ~~~makefile
+  prepare-for-rootfs: examples
+  	echo "Copying example CA and TA binaries to $(OUTPUT_DIR)..."
+  	@mkdir -p $(OUTPUT_DIR)
+  	@mkdir -p $(OUTPUT_DIR)/ta
+  	@mkdir -p $(OUTPUT_DIR)/ca
+  	@mkdir -p $(OUTPUT_DIR)/data # Add data.
+  	@for example in $(EXAMPLE_LIST); do \
+  		if [ -e $$example/host/optee_$$example ]; then \
+  			cp -p $$example/host/optee_$$example $(OUTPUT_DIR)/ca/; \
+  		fi; \
+  		cp -pr $$example/ta/*.ta $(OUTPUT_DIR)/ta/; \
+  		 # Copy data into OUTPUT_DIR.
+  		if [ -e $$example/data ]; then \
+  			cp -pr $$example/data/* $(OUTPUT_DIR)/data/; \
+  		fi; \
+  	done
+  ~~~
+
+- 修改build/qemu.mk，添加如下内容：
+
+  ~~~makefile
+  filelist-tee-common: optee-client xtest optee-examples
+  	@echo "# filelist-tee-common /start" 				> $(fl)
+  	@echo "dir /lib/optee_armtz 755 0 0" 				>> $(fl)
+  	@if [ -e $(OPTEE_EXAMPLES_PATH)/out/ca ]; then \
+  		for file in $(OPTEE_EXAMPLES_PATH)/out/ca/*; do \
+  			echo "file /usr/bin/$$(basename $$file)" \
+  			"$$file 755 0 0"				>> $(fl); \
+  		done; \
+  	fi
+  	@if [ -e $(OPTEE_EXAMPLES_PATH)/out/ta ]; then \
+  		for file in $(OPTEE_EXAMPLES_PATH)/out/ta/*; do \
+  			echo "file /lib/optee_armtz/$$(basename $$file)" \
+  			"$$file 755 0 0"				>> $(fl); \
+  		done; \
+  	fi
+  	# 在这里添加用户目录，并将训练和测试需要的数据加入到根目录文件系统中
+  	@echo "dir /home 755 0 0" 					>> $(fl)
+  	@echo "dir /home/usr 755 0 0" 					>> $(fl)
+  	@if [ -e $(OPTEE_EXAMPLES_PATH)/out/data ]; then \
+  		for file in $(OPTEE_EXAMPLES_PATH)/out/data/*; do \
+  			echo "file /home/usr/$$(basename $$file)" \
+  			"$$file 755 0 0"				>> $(fl); \
+  		done; \
+  	fi
+  ~~~
+
+  
+
+##### 部署到开发板
+
+先前已经将OPTEE/Linux系统移植到了Raspberry 3 b+开发板，添加新的TA时不需要重新编译整个项目进行烧写，只需要编译出二进制文件，将CA和TA的可执行文件放在对应文件夹即可。
+
+由于optee_3.8.0的版本使用了buildroot工具作为新的文件系统建立工具，编译文件和工程目录有部分差异，和optee_qemu_2.6.0需要的操作不同
+
+- 3.8.0版本默认将optee相关的源码搬运到out-br文件夹中使用buildroot进行编译管理，这个过程中我们的TA不能生成二进制文件（原因不明），因此需要手动编译。
+- 进入build目录，首先执行 make optee-client-common 命令，编译CA所需的库文件
+- 由于版本更新导致的目录变化，需要将生成的../optee_client/out/export/user/文件夹下的内容移动到../optee_client/out/export/
+- 回到build目录，执行 make optee-examples-common 命令，即可在lenet5的文件夹中生成正确的二进制文件。
+
+将${UUID}.ta文件放在开发板中的/lib/optee_armtz/文件夹下，
+
+将optee_lenet5文件放在/usr/bin/文件夹下
+
+将数据拷贝到开发板中，执行optee_lenet5命令，即可顺利运行安全应用
+
+![QQ图片20201218190843](image/image-20201218190843.jpg)
